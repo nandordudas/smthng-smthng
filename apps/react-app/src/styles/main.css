@@ -1,0 +1,5 @@
+@import '@unocss/reset/tailwind.css';
+
+:root {
+  --primary-color: rgba(273, 33, 78);
+}
