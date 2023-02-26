@@ -1,10 +1,12 @@
 import type { AddressInfo } from 'node:net'
 
 import { server } from './server'
+import { logger } from './utils/logger'
 
-server.listen(3333, 'localhost', () => {
+const port = Number(process.env?.PORT) || 3333
+
+server.listen(port, 'localhost', () => {
   const { address, port } = server.address() as AddressInfo
 
-  // eslint-disable-next-line no-console
-  console.log(`Listening on http://${address}:${port}/`)
+  logger.info(`server listening on http://${address}:${port}/`)
 })

@@ -1,7 +1,7 @@
 import type { ErrorRequestHandler } from 'express'
 import createHttpError, { type HttpError } from 'http-errors'
 
-const internalServerError = createHttpError.InternalServerError()
+const internalServerError: HttpError = createHttpError.InternalServerError()
 
 export function errorHandler(): ErrorRequestHandler {
   return (error, _request, response, next) => {

@@ -1,7 +1,10 @@
-import type { NextFunction, Request, RequestHandler, Response, Router } from 'express'
 import { JsonWebTokenError, type SignOptions, sign, verify } from 'async-jsonwebtoken'
-import { compare, genSalt, hash } from 'bcrypt'
+import type { NextFunction, Request, Response, Router } from 'express'
 import createHttpError from 'http-errors'
+import { compare, hash } from 'bcrypt'
+import type { Logger } from 'pino'
+
+import { AuthServiceBase } from './auth-service-base'
 
 const access_token_secret = '9zc3H9XKm52ofb5sVTrTYmZADuRFOac6'
 // eslint-disable-next-line unused-imports/no-unused-vars
@@ -10,30 +13,15 @@ const refresh_token_secret = '0fgt0eTkvaG6r4lbwpuB7DVoWngc4RWB'
 // it's getting from database >>> need some test boi...
 const userPassword = '$2b$10$nZIrokKuvox/nWbF34Fbk./A3777WgOrR8gbalL/wWO/jBwatdy0i'
 
-interface AuthBase {
-  login(...params: Parameters<RequestHandler>): Promise<void>
-  logout(...params: Parameters<RequestHandler>): Promise<void>
-  me(...params: Parameters<RequestHandler>): Promise<void>
-  register(...params: Parameters<RequestHandler>): Promise<void>
-  signAccessToken(userId: string): Promise<string | null | undefined> // 👀
-  verifyAccessToken(...params: Parameters<RequestHandler>): Promise<void>
+const bearerLeadingRegExp = /^Bearer /
+const saltRounds = 10
+const signOptions: SignOptions = {
+  expiresIn: '1h',
+  issuer: 'localhost',
 }
 
-// TODO: doesn't look good 🤔
-abstract class AuthServiceBase implements AuthBase {
-  constructor(public router: Router) {}
-
-  abstract login(...params: Parameters<RequestHandler>): Promise<void>
-  abstract logout(...params: Parameters<RequestHandler>): Promise<void>
-  abstract me(...params: Parameters<RequestHandler>): Promise<void>
-  abstract register(...params: Parameters<RequestHandler>): Promise<void>
-  abstract signAccessToken(userId: string): Promise<Awaited<ReturnType<typeof sign>>[0]>
-  abstract verifyAccessToken(...params: Parameters<RequestHandler>): Promise<void>
-}
-
-// TODO: extend main service with logger, ...
 export class AuthService extends AuthServiceBase {
-  constructor(public router: Router) {
+  constructor(public router: Router, private logger: Logger) {
     super(router)
 
     this.#init()
@@ -45,17 +33,18 @@ export class AuthService extends AuthServiceBase {
     if (!authorization)
       return next(createHttpError.Unauthorized())
 
-    const token = authorization.replace('Bearer ', '')
+    const token = authorization.replace(bearerLeadingRegExp, '')
     const [decoded, error] = await verify(token, access_token_secret)
 
     if (error instanceof Error) {
       const message = error instanceof JsonWebTokenError ? undefined : error.message
 
+      this.logger.error(`AuthService.verifyAccessToken ${error}`)
+
       return next(createHttpError.Unauthorized(message))
     }
 
-    // eslint-disable-next-line no-console
-    console.log({ decoded, error })
+    this.logger.info(`AuthService.verifyAccessToken ${JSON.stringify({ decoded, error })}`)
 
     // @ts-expect-error payload key doesn't exists
     request.payload = decoded
@@ -70,15 +59,17 @@ export class AuthService extends AuthServiceBase {
   override async register(request: Request, response: Response, next: NextFunction) {
     const { email, password } = request.body
 
-    // eslint-disable-next-line no-console
-    console.log(await hash(password, await genSalt(10)))
+    this.logger.info(await hash(password, saltRounds))
 
     delete request.body.password
 
     const [token, error] = await this.signAccessToken(email)
 
-    if (error)
+    if (error) {
+      this.logger.error(`AuthService.register ${error}`)
+
       return next(createHttpError.Unauthorized())
+    }
 
     response.status(200).send({ email, token })
   }
@@ -86,15 +77,19 @@ export class AuthService extends AuthServiceBase {
   override login = async (request: Request, response: Response, next: NextFunction) => {
     const { email, password } = request.body
 
-    // eslint-disable-next-line no-console
-    console.log(await compare(password, userPassword))
-
     delete request.body.password
 
+    const passwordMatch = await compare(password, userPassword)
+
+    this.logger.info(`password matches: ${passwordMatch}`)
+
     const [token, error] = await this.signAccessToken(email)
-  
-    if (error)
+
+    if (error) {
+      this.logger.error(`AuthService.login ${error}`)
+
       return next(createHttpError.Unauthorized())
+    }
 
     response.status(200).send({ email, token })
   }
@@ -104,16 +99,12 @@ export class AuthService extends AuthServiceBase {
   }
 
   override async signAccessToken(userId: string) {
-    const payload = {}
-
-    const options: SignOptions = {
-      audience: userId,
-      expiresIn: '1h',
-      issuer: 'localhost',
+    const payload = {
+      aud: userId,
     }
 
-    const result = await sign(payload, access_token_secret, options)
-  
+    const result = await sign(payload, access_token_secret, signOptions)
+
     return result
   }
 

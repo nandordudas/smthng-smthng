@@ -1,4 +1,5 @@
-import { type WebSocket, WebSocketServer } from 'ws'
+import { WebSocket, WebSocketServer } from 'ws'
+import { logger } from './utils/logger'
 
 interface User {}
 
@@ -10,23 +11,24 @@ export const wss = new WebSocketServer({
   path: '/ws',
 })
 
-wss.on('connection', (ws, _request) => {
+wss.on('connection', (ws) => {
   connections.add(ws)
 
-  ws.on('error', console.error)
+  ws.on('error', (error) => {
+    logger.error(`wss connection error ${error}`)
+  })
 
-  ws.on('pong', (_data) => {
+  ws.on('pong', () => {
     connections.add(ws)
   })
 
   clients.set({ id: '__userId__' }, ws)
 
   ws.on('message', (data, isBinary) => {
-    // eslint-disable-next-line no-console
-    console.log('message', {
+    logger.info(`wss connection message ${JSON.stringify({
       data: isBinary ? '-.-' : JSON.parse(data.toString()),
       isBinary,
-    })
+    })}`)
 
     setInterval(() => {
       ws.send(JSON.stringify(process.memoryUsage()))
@@ -34,15 +36,14 @@ wss.on('connection', (ws, _request) => {
   })
 
   ws.on('close', () => {
-    // eslint-disable-next-line no-console
-    console.log('close')
+    logger.info('wss connection close')
     clients.delete({ id: '__userId__' })
   })
 })
 
 const heartBeatInterval = setInterval(() => {
   wss.clients.forEach((ws) => {
-    if (ws.readyState === ws.CLOSING || ws.readyState === ws.CLOSED)
+    if (ws.readyState === WebSocket.CLOSED || ws.readyState === WebSocket.CLOSING)
       return
 
     if (connections.has(ws))
@@ -52,6 +53,4 @@ const heartBeatInterval = setInterval(() => {
   })
 }, 30_000)
 
-wss.on('close', () => {
-  clearInterval(heartBeatInterval)
-})
+wss.on('close', () => clearInterval(heartBeatInterval))

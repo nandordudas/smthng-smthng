@@ -1,10 +1,10 @@
 import cors, { type CorsOptions } from 'cors'
 import { type Options as RateLimitOptions, rateLimit } from 'express-rate-limit'
 import type { OptionsUrlencoded } from 'body-parser'
-import { json, urlencoded } from 'express'
+import { type RequestHandler, json, urlencoded } from 'express'
 import helmet from 'helmet'
 
-import { catchAllRoutes, errorHandler, faviconRouter } from '../middlewares'
+import { catchAllRoutes } from '../middlewares'
 
 const corsOptions: CorsOptions = {
   credentials: true,
@@ -17,18 +17,15 @@ const rateLimitOptions: Partial<RateLimitOptions> = {
   windowMs: 15 * 60 * 1_000,
 }
 
-const urlEncodedoptions: OptionsUrlencoded = {
+const urlEncodedOptions: OptionsUrlencoded = {
   extended: true,
 }
 
-// TODO: (RequestHandler | RequestErrorHandler)[]
-export const presetMiddlewares = [
+export const presetMiddlewares: RequestHandler[] = [
   json(),
-  urlencoded(urlEncodedoptions),
+  urlencoded(urlEncodedOptions),
   helmet(),
   cors(corsOptions),
   rateLimit(rateLimitOptions),
-  faviconRouter,
   catchAllRoutes(),
-  errorHandler(),
 ]
