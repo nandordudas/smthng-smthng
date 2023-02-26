@@ -1,0 +1,21 @@
+### register
+POST http://localhost:3333/api/v1/auth/register
+Content-Type: application/json
+
+{
+  "email": "john.doe@gmail.com",
+  "password": "password"
+}
+
+### login
+POST http://localhost:3333/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "john.doe@gmail.com",
+  "password": "password"
+}
+
+### me
+GET http://localhost:3333/api/v1/auth/me
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE2Nzc0MTQyNTcsImV4cCI6MTY3NzQxNzg1NywiYXVkIjoibmFuZG9yLmR1ZGFzQGdtYWlsLmNvbSIsImlzcyI6ImxvY2FsaG9zdCJ9.ckzPqzY1CesfmMQRy6QmnpcAX08YWtixOEioUTg2Gmw
