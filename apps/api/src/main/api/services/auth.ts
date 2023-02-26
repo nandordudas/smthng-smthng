@@ -30,14 +30,12 @@ abstract class AuthServiceBase implements AuthBase {
   abstract verifyAccessToken(...params: Parameters<RequestHandler>): Promise<void>
 }
 
+// TODO: extend main service with logger, ...
 export class AuthService extends AuthServiceBase {
   constructor(public router: Router) {
     super(router)
 
-    this.router.get('/logout', this.logout)
-    this.router.get('/me', this.verifyAccessToken, this.me)
-    this.router.post('/login', this.login)
-    this.router.post('/register', this.register)
+    this.#init()
   }
 
   override async verifyAccessToken(request: Request, _response: Response, next: NextFunction) {
@@ -68,7 +66,7 @@ export class AuthService extends AuthServiceBase {
     response.status(200).send('ok, it\'s me')
   }
 
-  override async register(request: Request, response: Response) {
+  override async register(request: Request, response: Response, next: NextFunction) {
     const { email, password } = request.body
 
     // eslint-disable-next-line no-console
@@ -76,12 +74,15 @@ export class AuthService extends AuthServiceBase {
 
     delete request.body.password
 
-    const token = await this.signAccessToken(email)
+    const [token, error] = await this.signAccessToken(email)
+
+    if (error)
+      return next(createHttpError.Unauthorized())
 
     response.status(200).send({ email, token })
   }
 
-  override login = async (request: Request, response: Response) => {
+  override login = async (request: Request, response: Response, next: NextFunction) => {
     const { email, password } = request.body
 
     // eslint-disable-next-line no-console
@@ -89,7 +90,10 @@ export class AuthService extends AuthServiceBase {
 
     delete request.body.password
 
-    const token = await this.signAccessToken(email)
+    const [token, error] = await this.signAccessToken(email)
+  
+    if (error)
+      return next(createHttpError.Unauthorized())
 
     response.status(200).send({ email, token })
   }
@@ -98,7 +102,7 @@ export class AuthService extends AuthServiceBase {
     response.status(200).send('logout')
   }
 
-  async signAccessToken(userId: string) {
+  override async signAccessToken(userId: string) {
     const payload = {}
 
     const options: SignOptions = {
@@ -107,11 +111,15 @@ export class AuthService extends AuthServiceBase {
       issuer: 'localhost',
     }
 
-    const [token, error] = await sign(payload, access_token_secret, options)
+    const result = await sign(payload, access_token_secret, options)
+  
+    return result
+  }
 
-    if (error)
-      throw new Error(error)
-
-    return token
+  #init() {
+    this.router.get('/logout', this.logout)
+    this.router.get('/me', this.verifyAccessToken, this.me)
+    this.router.post('/login', this.login)
+    this.router.post('/register', this.register)
   }
 }
