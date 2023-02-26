@@ -15,10 +15,11 @@ interface AuthBase {
   logout(...params: Parameters<RequestHandler>): Promise<void>
   me(...params: Parameters<RequestHandler>): Promise<void>
   register(...params: Parameters<RequestHandler>): Promise<void>
-  signAccessToken(userId: string): Promise<string | null | undefined>
+  signAccessToken(userId: string): Promise<string | null | undefined> // 👀
   verifyAccessToken(...params: Parameters<RequestHandler>): Promise<void>
 }
 
+// TODO: doesn't look good 🤔
 abstract class AuthServiceBase implements AuthBase {
   constructor(public router: Router) {}
 
@@ -117,7 +118,7 @@ export class AuthService extends AuthServiceBase {
   }
 
   #init() {
-    this.router.get('/logout', this.logout)
+    this.router.get('/logout', this.verifyAccessToken, this.logout)
     this.router.get('/me', this.verifyAccessToken, this.me)
     this.router.post('/login', this.login)
     this.router.post('/register', this.register)
