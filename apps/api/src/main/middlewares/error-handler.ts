@@ -1,15 +1,18 @@
 import type { ErrorRequestHandler } from 'express'
+import createHttpError, { type HttpError } from 'http-errors'
 
 export function errorHandler(): ErrorRequestHandler {
   return (error, _request, response, next) => {
+    const internalServerError = createHttpError.InternalServerError()
+
     if (response.headersSent)
-      return next(error)
+      return next(internalServerError)
 
     const {
-      message = 'Internal Server Error',
-      status = 500,
-    } = error
+      message = internalServerError.message,
+      statusCode = internalServerError.statusCode,
+    } = error as HttpError // 👀
 
-    response.status(status).send({ message, status })
+    response.status(statusCode).send({ message, statusCode })
   }
 }

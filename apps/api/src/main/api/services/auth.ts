@@ -49,8 +49,8 @@ export class AuthService extends AuthServiceBase {
     const token = authorization.replace('Bearer ', '')
     const [decoded, error] = await verify(token, access_token_secret)
 
-    if (error && error instanceof JsonWebTokenError) {
-      const message = error instanceof JsonWebTokenError ? undefined : (error as Error).message
+    if (error instanceof Error) {
+      const message = error instanceof JsonWebTokenError ? undefined : error.message
 
       return next(createHttpError.Unauthorized(message))
     }

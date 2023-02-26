@@ -1,19 +1,14 @@
-import express, { type Router, json, urlencoded } from 'express'
+import express, { type Router } from 'express'
 
-import { catchAllRoutes, errorHandler, faviconRouter } from './middlewares'
 import { apiV1Routes } from './api/v1/routes'
+
+const apiroutePrefix = '/api'
 
 export const app = express()
 
-const routes: Router[] = [
+app.use(apiroutePrefix, [
   apiV1Routes(app),
-  // add new routers
-]
+  // ...extend with new routers here
+] satisfies Router[])
 
-app.use(json())
-app.use(urlencoded({ extended: true }))
-// TODO: add missing middlewares (helmet, rate limiter, morgan, ...)
-app.use(faviconRouter)
-app.use('/api', routes)
-app.use(catchAllRoutes())
-app.use(errorHandler())
+export { presetMiddlewares } from './config/middlewares'

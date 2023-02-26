@@ -1,9 +1,9 @@
 import { createServer } from 'node:http'
 
-import { app } from './app'
+import { app, presetMiddlewares } from './app'
 import { wss } from './wss'
 
-export const server = createServer(app)
+export const server = createServer(app.use(presetMiddlewares))
 
 server.on('error', console.error)
 
