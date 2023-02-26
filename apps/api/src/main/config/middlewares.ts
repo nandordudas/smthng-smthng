@@ -21,6 +21,7 @@ const urlEncodedoptions: OptionsUrlencoded = {
   extended: true,
 }
 
+// TODO: (RequestHandler | RequestErrorHandler)[]
 export const presetMiddlewares = [
   json(),
   urlencoded(urlEncodedoptions),
