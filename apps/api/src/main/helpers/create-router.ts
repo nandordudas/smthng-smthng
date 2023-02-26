@@ -1,6 +1,6 @@
 import { Router } from 'express'
 
-export function createRouter() {
+export function createRouter(): Router {
   const router = Router({
     caseSensitive: true,
     strict: true,
