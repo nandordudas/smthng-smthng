@@ -1,8 +1,8 @@
 {
   "name": "@workspace/api",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "scripts": {
-    "dev": "PORT=3333 tsx watch ./src"
+    "dev": "PORT=3333 tsx watch ./src/main"
   },
   "dependencies": {
     "bcrypt": "^5.1.0",
@@ -13,6 +13,10 @@
     "helmet": "^6.0.1",
     "jsonwebtoken": "^9.0.0",
     "morgan": "^1.10.0",
+    "pino": "^8.11.0",
+    "pino-http": "^8.3.3",
+    "pino-pretty": "^9.4.0",
+    "uuid": "^9.0.0",
     "winston": "^3.8.2",
     "ws": "^8.12.1"
   },

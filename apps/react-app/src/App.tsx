@@ -6,6 +6,7 @@ import './styles/main.css'
 
 import { HomePage } from './pages/home'
 import { NotFoundPage } from './pages/not-found'
+import { GamePage } from './pages/game'
 import PostsManager from './features/posts/PostsManager'
 
 export const App = () => {
@@ -14,6 +15,7 @@ export const App = () => {
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/posts/*" element={<PostsManager />} />
+        <Route path="/game" element={<GamePage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </Suspense>
