@@ -21,11 +21,14 @@ const urlEncodedOptions: OptionsUrlencoded = {
   extended: true,
 }
 
-export const presetMiddlewares: RequestHandler[] = [
+export const defaultMiddleWares: RequestHandler[] = [
   json(),
   urlencoded(urlEncodedOptions),
   helmet(),
   cors(corsOptions),
   rateLimit(rateLimitOptions),
+]
+
+export const presetMiddlewares: RequestHandler[] = [
   catchAllRoutes(),
 ]

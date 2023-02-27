@@ -15,8 +15,10 @@
     "morgan": "^1.10.0",
     "pino": "^8.11.0",
     "pino-pretty": "^9.4.0",
+    "redis": "^4.6.5",
     "uuid": "^9.0.0",
-    "ws": "^8.12.1"
+    "ws": "^8.12.1",
+    "zod": "^3.20.6"
   },
   "devDependencies": {
     "@types/bcrypt": "^5.0.0",
@@ -25,6 +27,7 @@
     "@types/http-errors": "^2.0.1",
     "@types/morgan": "^1.9.4",
     "@types/ws": "^8.5.4",
+    "@workspace/database": "workspace:*",
     "tsx": "^3.12.3"
   }
 }

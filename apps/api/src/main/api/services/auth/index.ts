@@ -1,117 +1,92 @@
-import { JsonWebTokenError, type SignOptions, sign, verify } from 'async-jsonwebtoken'
-import type { NextFunction, Request, Response, Router } from 'express'
+import type { Request, Response, Router } from 'express'
 import createHttpError from 'http-errors'
 import { compare, hash } from 'bcrypt'
 import type { Logger } from 'pino'
+import { type PrismaClient, prisma } from '@workspace/database'
 
-import { AuthServiceBase } from './auth-service-base'
+import { _AuthServiceBase } from './_AuthServiceBase'
+import { loginSchema, refreshTokenSchema, registerSchema } from './registerSchema'
+import { TokenManager } from './TokenManager'
+import { SALT_ROUNDS } from './constants'
+import { api } from './api'
 
-const access_token_secret = '9zc3H9XKm52ofb5sVTrTYmZADuRFOac6'
-// eslint-disable-next-line unused-imports/no-unused-vars
-const refresh_token_secret = '0fgt0eTkvaG6r4lbwpuB7DVoWngc4RWB'
-
-// it's getting from database >>> need some test boi...
-const userPassword = '$2b$10$nZIrokKuvox/nWbF34Fbk./A3777WgOrR8gbalL/wWO/jBwatdy0i'
-
-const bearerLeadingRegExp = /^Bearer /
-const saltRounds = 10
-const signOptions: SignOptions = {
-  expiresIn: '1h',
-  issuer: 'localhost',
-}
-
-export class AuthService extends AuthServiceBase {
-  constructor(public router: Router, private logger: Logger) {
-    super(router)
-
-    this.#init()
+export class AuthService extends _AuthServiceBase {
+  constructor(
+    override _router: Router,
+    override _logger: Logger,
+    protected _prisma: PrismaClient,
+  ) {
+    super(_router, _logger)
   }
 
-  override async verifyAccessToken(request: Request, _response: Response, next: NextFunction) {
-    const { authorization } = request.headers
+  @api({ method: 'post', path: '/register' })
+  override async register(request: Request, response: Response) {
+    const { body: data } = await this.validate(registerSchema, request)
 
-    if (!authorization)
-      return next(createHttpError.Unauthorized())
+    data.password = await hash(data.password, SALT_ROUNDS)
 
-    const token = authorization.replace(bearerLeadingRegExp, '')
-    const [decoded, error] = await verify(token, access_token_secret)
+    const user = await prisma.user.create({ data })
+    const [accessToken, error] = await TokenManager.signAccessToken(user)
 
-    if (error instanceof Error) {
-      const message = error instanceof JsonWebTokenError ? undefined : error.message
+    if (error)
+      throw new createHttpError.InternalServerError()
 
-      this.logger.error(`AuthService.verifyAccessToken ${error}`)
+    const refreshToken = await TokenManager.signRefreshToken(user)
 
-      return next(createHttpError.Unauthorized(message))
-    }
-
-    this.logger.info(`AuthService.verifyAccessToken ${JSON.stringify({ decoded, error })}`)
-
-    // @ts-expect-error payload key doesn't exists
-    request.payload = decoded
-
-    next()
+    response.status(201).send({ email: user.email, accessToken, refreshToken })
   }
 
-  override async me(_request: Request, response: Response) {
+  @api({ method: 'post', path: '/login' })
+  override async login(request: Request, response: Response) {
+    const { body: data } = await this.validate(loginSchema, request)
+    const user = await prisma.user.findFirst({
+      where: { email: data.email },
+    })
+
+    if (!user)
+      throw createHttpError.NotFound()
+
+    const passwordMatch = await compare(data.password, user.password)
+
+    if (!passwordMatch)
+      throw createHttpError.Unauthorized()
+
+    const [accessToken, error] = await TokenManager.signAccessToken(user)
+
+    if (error)
+      throw new createHttpError.InternalServerError()
+
+    const refreshToken = await TokenManager.signRefreshToken(user)
+
+    response.status(200).send({ accessToken, refreshToken })
+  }
+
+  @api({ method: 'post', path: '/refresh-token' })
+  override async refreshToken(request: Request, response: Response) {
+    const { body } = await this.validate(refreshTokenSchema, request)
+    const { refresh_token } = body
+
+    if (!refresh_token)
+      throw createHttpError.BadRequest()
+
+    const user = await TokenManager.verifyRefreshToken(refresh_token)
+    const [accessToken, accessTokenError] = await TokenManager.signAccessToken(user)
+
+    if (accessTokenError)
+      throw new createHttpError.InternalServerError()
+
+    const refreshToken = await TokenManager.signRefreshToken(user)
+
+    response.status(200).send({ accessToken, refreshToken })
+  }
+
+  @api({ method: 'get', path: '/me', middlewares: [TokenManager.verifyAccessToken] })
+  async me(request: Request, response: Response) {
     response.status(200).send('ok, it\'s me')
   }
 
-  override async register(request: Request, response: Response, next: NextFunction) {
-    const { email, password } = request.body
-
-    this.logger.info(await hash(password, saltRounds))
-
-    delete request.body.password
-
-    const [token, error] = await this.signAccessToken(email)
-
-    if (error) {
-      this.logger.error(`AuthService.register ${error}`)
-
-      return next(createHttpError.Unauthorized())
-    }
-
-    response.status(200).send({ email, token })
-  }
-
-  override login = async (request: Request, response: Response, next: NextFunction) => {
-    const { email, password } = request.body
-
-    delete request.body.password
-
-    const passwordMatch = await compare(password, userPassword)
-
-    this.logger.info(`password matches: ${passwordMatch}`)
-
-    const [token, error] = await this.signAccessToken(email)
-
-    if (error) {
-      this.logger.error(`AuthService.login ${error}`)
-
-      return next(createHttpError.Unauthorized())
-    }
-
-    response.status(200).send({ email, token })
-  }
-
-  override async logout(_request: Request, response: Response) {
+  @api({ method: 'get', path: '/logout', middlewares: [TokenManager.verifyAccessToken] })
+  async logout(_request: Request, response: Response) {
     response.status(200).send('logout')
-  }
-
-  override async signAccessToken(userId: string) {
-    const payload = {
-      aud: userId,
-    }
-
-    const result = await sign(payload, access_token_secret, signOptions)
-
-    return result
-  }
-
-  #init() {
-    this.router.get('/logout', this.verifyAccessToken, this.logout)
-    this.router.get('/me', this.verifyAccessToken, this.me)
-    this.router.post('/login', this.login)
-    this.router.post('/register', this.register)
   }
 }

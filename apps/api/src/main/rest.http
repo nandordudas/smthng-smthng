@@ -3,8 +3,9 @@ POST http://localhost:3333/api/v1/auth/register
 Content-Type: application/json
 
 {
-  "email": "john.doe@gmail.com",
-  "password": "password"
+  "email": "john.doe+26@gmail.com",
+  "password": "password",
+  "name": "John Doe"
 }
 
 ### login
@@ -18,4 +19,12 @@ Content-Type: application/json
 
 ### me
 GET http://localhost:3333/api/v1/auth/me
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE2Nzc0MTQyNTcsImV4cCI6MTY3NzQxNzg1NywiYXVkIjoibmFuZG9yLmR1ZGFzQGdtYWlsLmNvbSIsImlzcyI6ImxvY2FsaG9zdCJ9.ckzPqzY1CesfmMQRy6QmnpcAX08YWtixOEioUTg2Gmw
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOjksImlhdCI6MTY3NzUxMTEyNCwiZXhwIjoxNjc3NTE0NzI0LCJpc3MiOiJsb2NhbGhvc3QifQ.zMfnePOtF52Ugr7LngMk5-CCfVToNIw4ndj0j3Tunmk
+
+### refresh token
+POST http://localhost:3333/api/v1/auth/refresh-token
+Content-Type: application/json
+
+{
+  "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOjksImlhdCI6MTY3NzUwMjcwOSwiZXhwIjoxNjc5OTIxOTA5LCJpc3MiOiJsb2NhbGhvc3QifQ.o4W9cyaLRSe-ZjkRqeZ5wUQGR3CNjTExauVa8YjBqVE"
+}

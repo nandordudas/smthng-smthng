@@ -23,9 +23,11 @@
     "vscode": {
       "extensions": [
         "antfu.unocss",
+        "cweijan.vscode-database-client2",
         "dbaeumer.vscode-eslint",
         "eamodio.gitlens",
         "mutantdino.resourcemonitor",
+        "prisma.prisma",
         "streetsidesoftware.code-spell-checker",
         "usernamehw.errorlens"
       ],
